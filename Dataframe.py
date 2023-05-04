@@ -1,6 +1,6 @@
 import random
 
-class Dataframe:
+class DataFrame:
     """
     Dataframe class for reading and manipulating csv files. (To the likes of pandas)
     
@@ -65,6 +65,30 @@ class Dataframe:
         
         return df
 
+    # ---------------------------------------------------------------
+
+    def get_target_col(self):
+        target_col = []
+        for i in self.dados:
+            target_col.append(i[self.targetCol])
+        return target_col
+    
+    # ---------------------------------------------------------------
+
+    def get_data(self):
+        data = []
+        for i in self.dados:
+            data.append(i)
+        return data
+    
+    # ---------------------------------------------------------------
+
+    def get_data_wo_target(self):
+        data_no_target = []
+        for i in self.dados:
+            data_no_target.append(i[:self.targetCol])
+        return data_no_target
+    
     # ---------------------------------------------------------------
 
     # MODIFY DATAFRAME METHODS

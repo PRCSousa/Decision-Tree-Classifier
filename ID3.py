@@ -1,135 +1,203 @@
 import pandas as pd #for manipulating the csv data
 import numpy as np #for mathematical calculation
+import math
+import json
+import copy
 
-train_data_m = pd.read_csv("datasets/weather.csv") #importing the dataset from the disk
-train_data_m = train_data_m.drop(columns = ['ID'])
+from Dataframe import *
 
-def calc_total_entropy(train_data, label, class_list):
-    total_row = train_data.shape[0] #the total size of the dataset
+def calc_total_entropy(train_data: DataFrame, label, class_list):
+    print("\nCALCULATE TOTAL ENTROPY: ")
+    print(" ")
+    total_row = train_data.numEntradas #the total size of the dataset
     total_entr = 0
     
     for c in class_list: #for each class in the label
-        total_class_count = train_data[train_data[label] == c].shape[0] #number of the class
-        total_class_entr = - (total_class_count/total_row)*np.log2(total_class_count/total_row) #entropy of the class
+        # DEBUG
+        print(c)
+        total_class_count = 0
+        total_class_count = len(train_data.if_contains(c)) #number of the class
+        total_class_entr = 0
+        total_class_entr = (float)(- (total_class_count/total_row)*np.log2(total_class_count/total_row)) #entropy of the class
+        if math.isnan(total_class_entr):
+            total_class_entr = 0
+        print("Total Class Count:", total_class_count)
+        print("Total Class Entropy:", total_class_entr)
         total_entr += total_class_entr #adding the class entropy to the total entropy of the dataset
     
+    print("Total Entropy: ")
+    print(total_entr)
     return total_entr
 
-def calc_entropy(feature_value_data, label, class_list):
-    class_count = feature_value_data.shape[0]
+def calc_entropy(feature_value_list: list, feature_value_data: DataFrame, label, class_list) -> float:
+
+    '''
+    Calculates the entropy of the feature value
+
+    Parameters
+    ----------------
+    - feature_value_data : List  of the feature values
+    - label : label of the dataset (target column)
+    - class_list : list of the classes in the label
+    '''
+    print("\nCALCULATE ENTROPY OF ATRIBUTE: ")
+    feature_value_data.print_csv()
+    print(label)
+    print(class_list)
+
+    class_count = feature_value_data.numEntradas
     entropy = 0
     
     for c in class_list:
-        label_class_count = feature_value_data[feature_value_data[label] == c].shape[0] #row count of class c 
+        label_class_count = len(feature_value_data.if_contains(c))#row count of class c 
+        print("\n Count de entradas com label " + c + ": ")
+        print(label_class_count)
+        print(feature_value_data.if_contains(c))
+        
         entropy_class = 0
+
         if label_class_count != 0:
             probability_class = label_class_count/class_count #probability of the class
             entropy_class = - probability_class * np.log2(probability_class)  #entropy
         entropy += entropy_class
+
     return entropy
 
-def calc_info_gain(feature_name, train_data, label, class_list):
-    feature_value_list = train_data[feature_name].unique() #unqiue values of the feature
-    total_row = train_data.shape[0]
+def calc_info_gain(feature_name, train_data: DataFrame, label: int, class_list: list):
+
+    print("\nCALC INFO GAIN: ")
+    print("Feature Name:" + feature_name)
+    print("Train Data: ")
+    train_data.print_csv()
+    print("Label: " + label)
+    print("Class List: ")
+    print(class_list)
+
+    feature_value_list = train_data.get_unique_values(train_data.getColumn(feature_name)) #unqiue values of the feature
+
+    print("Feature Value List")
+    print(feature_value_list)
+
+    total_row = train_data.numEntradas
     feature_info = 0.0
     
     for feature_value in feature_value_list:
-        feature_value_data = train_data[train_data[feature_name] == feature_value] #filtering rows with that feature_value
-        feature_value_count = feature_value_data.shape[0]
-        feature_value_entropy = calc_entropy(feature_value_data, label, class_list) #calculcating entropy for the feature value
+        feature_value_data = train_data.if_contains(feature_value) #filtering rows with that feature_value
+        feature_value_data.insert(0, train_data.atributos)
+        feature_value_data = DataFrame("nan", matrix= feature_value_data)
+        print("Train Data que contém " + feature_value + ":")
+        print(feature_value_data.print_csv())
+
+        feature_value_count = feature_value_data.numEntradas
+        feature_value_entropy = calc_entropy(feature_value_list, feature_value_data, label, class_list) #calculcating entropy for the feature value
         feature_value_probability = feature_value_count/total_row
         feature_info += feature_value_probability * feature_value_entropy #calculating information of the feature value
+        print("Feature value: ", feature_value)
+        print("Feature info gain: ", feature_info)
         
     return calc_total_entropy(train_data, label, class_list) - feature_info #calculating information gain by subtracting
 
 
-def find_most_informative_feature(train_data, label, class_list):
-    feature_list = train_data.columns.drop(label) #finding the feature names in the dataset
-                                            #N.B. label is not a feature, so dropping it
+def find_most_informative_feature(train_data: DataFrame, label: str, class_list: list):
+    print("FIND MOST INFORMATIVE FEATURE: ")
+    print(" ")
+    feature_list = train_data.atributos #finding the feature names in the dataset
     max_info_gain = -1
     max_info_feature = None
     
-    for feature in feature_list:  #for each feature in the dataset
+    for feature in feature_list[:-1]:  #for each feature in the dataset
         feature_info_gain = calc_info_gain(feature, train_data, label, class_list)
+        print("VALOR DE " + feature + ": ")
+        print(feature_info_gain)
         if max_info_gain < feature_info_gain: #selecting feature name with highest information gain
             max_info_gain = feature_info_gain
             max_info_feature = feature
-            
+    
+    print("Max info gain: ", max_info_feature)
     return max_info_feature
 
 
-def generate_sub_tree(feature_name, train_data, label, class_list, max_nodes):
-    feature_value_count_dict = train_data[feature_name].value_counts(sort=False)
-    tree = {}
-    num_nodes = 0
-    
-    for feature_value, count in feature_value_count_dict.iteritems():
-        if num_nodes >= max_nodes:
-            break
-        
-        feature_value_data = train_data[train_data[feature_name] == feature_value]
-        assigned_to_node = False
-        
-        for c in class_list:
-            class_count = feature_value_data[feature_value_data[label] == c].shape[0]
+def make_tree(root: dict, train_data: DataFrame, label: str, class_list: list):
+    print("MAKE TREE: ")
+    print("train data on this node: ")
+    train_data.print_csv()
+    print(" ")
 
-            if class_count == count:
-                tree[feature_value] = c
-                train_data = train_data[train_data[feature_name] != feature_value]
-                assigned_to_node = True
-                num_nodes += 1
-                
-        if not assigned_to_node:
-            tree[feature_value] = "?"
-            num_nodes += 1
+    if len(train_data.get_data()) != 0: #if dataset becomes enpty after updating
+
+        # if all the rows have same class
+        if len(train_data.get_unique_values(train_data.getColumn(label))) == 1:
+            print("All rows have same class")
+            root = train_data.get_unique_values(train_data.getColumn(label))[0]
+            return root
+
+        # if there are no more features
+        if len(train_data.atributos) == 1:
+            print("No more features")
+            root = train_data.get_unique_values(train_data.getColumn(label))[0]
+            return root
+
+        max_info_feature = find_most_informative_feature(train_data, label, class_list) #most informative feature    
+
+        print("BEGINNING THE TREE MAKING PROCESS:")
+        print("Max info feature: ", max_info_feature)
+
+        # separate the dataset based on the most informative feature and make subtrees based on the values of the feature
+
+        feature_value_list = train_data.get_unique_values(train_data.getColumn(max_info_feature)) #unqiue values of the feature
+        print("Feature value list: ", feature_value_list)
+        tree= {} #root of the tree
+        col = train_data.getColumn(max_info_feature)
+        for feature_value in feature_value_list:
+            print("Feature value: ", feature_value)
+            print("Train data before subdividing it: ")
+            train_data.print_csv()
+            # reset subdata
+            sub_data = []
+            sub_data = copy.deepcopy(train_data.if_contains_in_column(feature_value, col)) #filtering rows with that feature_value
+            print("Subdata: ")
+            print(sub_data)
+            # converting the list to dataframe and dropping the max feature column
+            # make deepcopies before passing to the function to avoid changing the original dataset
+
+            atributos = copy.deepcopy(train_data.atributos)
+            sub_data.insert(0, atributos)
+            sub_data = DataFrame("nan", matrix= sub_data)
+            print("Subdata before dropping featured column")
+            sub_data.print_csv()
+            sub_data.drop(col) #dropping the feature column
+            print("Subdata after dropping featured column")
+            sub_data.print_csv()
+
+            # if there are no more entries
+            if len(sub_data.get_data()) == 0:
+                print("No more entries")
+                # define the leaf node as the most common class
+                root[max_info_feature][feature_value] = train_data.get_most_common_class(train_data.getColumn(label))
+                return tree
             
-        if num_nodes >= max_nodes:
-            break
-            
-    return tree, train_data
+            tree.update({feature_value: {}}) #updating the tree with the feature name
 
+            # recursive call to make_tree
+            sub_dict = make_tree(tree[feature_value], sub_data, label, class_list)
+            tree[feature_value] = sub_dict #updating the tree with the subtree
 
+    return tree
 
-def make_tree(root, prev_feature_value, train_data, label, class_list):
-    if train_data.shape[0] != 0: #if dataset becomes enpty after updating
-        max_info_feature = find_most_informative_feature(train_data, label, class_list) #most informative feature
-        tree, train_data = generate_sub_tree(max_info_feature, train_data, label, class_list, 8) #getting tree node and updated dataset
-        next_root = None
-        
-        if prev_feature_value != None: #add to intermediate node of the tree
-            root[prev_feature_value] = dict()
-            root[prev_feature_value][max_info_feature] = tree
-            next_root = root[prev_feature_value][max_info_feature]
-        else: #add to root of the tree
-            root[max_info_feature] = tree
-            next_root = root[max_info_feature]
-        
-        for node, branch in list(next_root.items()): #iterating the tree node
-            if branch == "?": #if it is expandable
-                feature_value_data = train_data[train_data[max_info_feature] == node] #using the updated dataset
-                make_tree(next_root, node, feature_value_data, label, class_list) #recursive call with updated dataset
-
-
-def id3(train_data_m, label):
-    train_data = train_data_m.copy() #getting a copy of the dataset
+def id3(train_data: DataFrame, TarCol: int) -> dict:
     tree = {} #tree which will be updated
-    class_list = train_data[label].unique() #getting unqiue classes of the label
-    make_tree(tree, None, train_data, label, class_list) #start calling recursion
-    return tree
+    class_list = train_data.get_unique_values(TarCol) #getting unqiue classes of the label
+    # DEBUG
+    print(class_list)
+    label = train_data.atributos[TarCol] #getting the label name
+    return make_tree(tree, train_data, label, class_list) #start calling recursion
 
+df = DataFrame("datasets/iris.csv") #importing the dataset from the disk
+df.read_csv() #reading the dataset
+df.drop(0) # drop the ID row
+df.format_continuous()
 
-def predict(tree, test_data):
-    for feature_name, feature_value in test_data.iteritems():
-        if feature_name in tree:
-            if feature_value in tree[feature_name]:
-                tree = tree[feature_name][feature_value]
-            else:
-                return "No"
-        else:
-            return "No"
-    return tree
+tree = id3(df, df.targetCol)
 
-tree = id3(train_data_m, 'Play')
-
-import pprint
-pprint.pprint(tree)
+print("FINAL TREE: ")
+print(tree)

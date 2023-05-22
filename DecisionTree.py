@@ -1,4 +1,3 @@
-import pandas as pd #for manipulating the csv data
 import numpy as np #for mathematical calculation
 import sys
 import math

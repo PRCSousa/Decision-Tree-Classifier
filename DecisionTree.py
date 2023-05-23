@@ -208,15 +208,40 @@ def print_dictionary(dictionary, indent=''):
         attribute, count, sub_dict = value
 
         print(indent + attribute + ":")
-        print(indent + '    ' + key + ': ', end= '')
+        print(indent + '    ' + key + ':' + " (" + str(count) + ")", end= '')
         
         if isinstance(sub_dict, str):
-            print(sub_dict + " (" + str(count) + ")")
+            print(" " + sub_dict)
         else:
             print("")
             print_dictionary(sub_dict, indent + "    ")
 
 # lero print
+
+def format_input(input: str, df: DataFrame) -> DataFrame:
+    '''
+    ### Formats the input string
+    This function is used to format the input string to a list of strings
+    where each string is a feature value
+
+    ---
+
+    Parameters
+
+    - input : input string
+    '''
+    input = input.split(",")
+    row = [i.strip() for i in input]
+    list = []
+    f = copy.copy(df.atributos)
+    f.pop()
+    list.append(f)
+    list.append(row)
+    df = DataFrame("datasets/" + sys.argv[1] + ".csv", matrix= list)
+
+    df.format_continuous() 
+    return df
+    
 
 def id3(train_data: DataFrame, TarCol: int) -> dict:
     tree = {} #tree which will be updated
@@ -226,6 +251,40 @@ def id3(train_data: DataFrame, TarCol: int) -> dict:
     return make_tree(tree, train_data, label, class_list) #start calling recursion
 
 
+def predict_target(dictionary, feat: DataFrame) -> str:
+    '''
+    ### Predicts the target class
+    This function is used to predict the target class of a row
+    by traversing the tree
+
+    ---
+
+    Parameters
+
+    - dictionary : the decision tree
+    - feat : the feat of the row
+    '''
+
+    if isinstance(dictionary, str):
+        return dictionary
+
+    # get the first key of the dictionary
+    key = list(dictionary.keys())
+    
+    attribute = dictionary[key[0]][0]
+
+    # get the index of the feature in the row
+    index = feat.getColumn(attribute)
+
+    for key, value in dictionary.items():
+        if isinstance(value[2], str) and key == feat.get_data()[0][index]:
+            return value[2]
+
+        if key == feat.get_data()[0][index]:
+            sub_dict = value[2]
+            return predict_target(sub_dict, feat)
+        
+    return "No class found"
 
 
 # ------------------ main ------------------
@@ -239,3 +298,17 @@ df.format_continuous() # format continuous data (only works for iris and weather
 tree = id3(df, df.targetCol)
 
 print_dictionary(tree)
+
+
+# ------------------ testing ------------------
+
+print("\nWant to test prediction? (y/n)")
+if input() == "n":
+    exit()
+
+print("How many rows to test? ", end="")
+n = int(input())
+for i in range(n):
+    print("\nEnter row " + str(i + 1) + ": ", end="\n")
+    a = format_input(input(), df)
+    print("PREDICTION: " + predict_target(tree, a), end="\n")

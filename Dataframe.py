@@ -137,34 +137,6 @@ class DataFrame:
 
      # ---------------------------------------------------------------
 
-    def print_csv(self):
-        print(self.atributos)
-        for i in self.dados:
-            print(i)
-
-    # ---------------------------------------------------------------
-    
-    def get_dataframe(self):
-        # add both attributes and data to the same matrix and return it
-        df = []
-        df.append(self.atributos)
-        for i in self.dados:
-            df.append(i)
-        
-        return df
-
-    # ---------------------------------------------------------------
-
-    def copy(self):
-        ''' Returns a copy of the dataframe'''
-        df = DataFrame(self.filename)
-        df.atributos = self.atributos
-        df.dados = self.dados
-        df.numEntradas = self.numEntradas
-        df.targetVar = self.targetVar
-        df.targetCol = self.targetCol
-        return df
-
     def get_target_col(self):
         target_col = []
         for i in self.dados:
@@ -180,20 +152,6 @@ class DataFrame:
         return data
     
     # ---------------------------------------------------------------
-
-    def CountUniqueOfValue(self, col: int, value: str) -> int:
-        unique_values = []
-        for i in self.dados:
-            a = i[col]
-            if a == value and i not in unique_values:
-                unique_values.append(i)
-        return len(unique_values)
-
-    def get_data_wo_target(self):
-        data_no_target = []
-        for i in self.dados:
-            data_no_target.append(i[:self.targetCol])
-        return data_no_target
     
     def if_contains(self, val: str) -> list:
         list = []
@@ -222,17 +180,10 @@ class DataFrame:
             if i[col] not in unique_values:
                 unique_values.append(i[col])
         return unique_values
-    
-    def DropAllExceptWhereEqual(self, Pos: int, value: str):
-        for i in self.dados:
-            if i[Pos] != value:
-                self.dados.remove(i)
 
     def get_most_common_class(self):
         return max(set(self.get_target_col()), key=self.get_target_col().count)
-    # MODIFY DATAFRAME METHODS
     
-
     # ---------------------------------------------------------------
 
     def drop(self, col) -> None:
@@ -246,90 +197,5 @@ class DataFrame:
         self.targetCol -= 1
 
     # ---------------------------------------------------------------
-
-    def dropna(self):
-        """
-        Remove entries with missing values from the dataframe.
-        """
-
-        for i in range(0,len(self.dados)):
-            for j in range(0,len(self.dados[i])):
-                if (self.dados[i][j] in self.nanlist):
-                    del self.dados[i]
-                    break
-
-    # ---------------------------------------------------------------
-
-    def dropColumnsExcept(self, cols: list):
-        """
-        Remove all columns from the dataframe except the ones given.
-        
-        Parameters
-        ----------------
-            cols: list of column indexes to keep (begins at 0)
-        """
-
-        for i in cols:
-            inde = self.atributos.index(i)
-            self.atributos.remove(i)
-            for j in range(0,len(self.dados)):
-                del self.dados[j][inde]
-
-    # ---------------------------------------------------------------
-
-
-
-
-    def fillna(self, col, value):
-        """
-        Replace missing values in the chosen column with the value given.
-        
-        Parameters
-        ----------------
-            col: column index (begins at 0)
-            value: value to replace missing values with
-        """
-
-        for i in range(0,len(self.dados)):
-            if self.dados[i][col] == "?":
-                self.dados[i][col] = value
-
-    # ---------------------------------------------------------------
-
-
-    # ---------------------------------------------------------------
-
-    def train_test_split(self, test_size, seed=42):
-        random.seed(seed)
-        test_size=int(self.numEntradas*test_size)
-        lista = random.sample(range(0, self.numEntradas), test_size)
-
-        lista.sort()
-        
-        X_test = []
-        X_train = []
-        
-        for i in range(0,len(self.dados)):
-            if i in lista:
-                X_train.append(self.dados[i])
-            else:
-                X_test.append(self.dados[i])
-
-        Y_train = []
-        Y_test = []
-
-        for i in range(0,len(X_train)):
-            Y_train.append(X_train[i][self.targetCol])
-            del X_train[i][self.targetCol]
-        
-        for i in range(0,len(X_test)):
-            Y_test.append(X_test[i][self.targetCol])
-            del X_test[i][self.targetCol]
-
-        return X_train, X_test, Y_train, Y_test
     
-    # ---------------------------------------------------------------
-
-    
-
     #ola pepe!

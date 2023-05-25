@@ -144,7 +144,8 @@ def make_tree(root: dict, train_data: DataFrame, label: str, class_list: list):
 
         # if there are no more features, return the most common class
         if len(train_data.atributos) == 1:
-            root = train_data.get_most_common_class(train_data.getColumn(label))
+            
+            root = train_data.get_most_common_class()
             return root
 
         # if there are more features, find the most informative feature
@@ -188,7 +189,7 @@ def make_tree(root: dict, train_data: DataFrame, label: str, class_list: list):
             if len(sub_data.get_data()) == 0:
 
                 # define the leaf node as the most common class
-                root[max_info_feature][feature_value] = train_data.get_most_common_class(train_data.getColumn(label))
+                root[max_info_feature][feature_value] = train_data.get_most_common_class()
                 return tree
             
             tree.update({feature_value: {}}) #updating the tree with the feature name
@@ -288,27 +289,32 @@ def predict_target(dictionary, feat: DataFrame) -> str:
 
 
 # ------------------ main ------------------
+def main():
+    df = DataFrame("datasets/" + sys.argv[1] + ".csv") #importing the dataset from the disk
 
-df = DataFrame("datasets/" + sys.argv[1] + ".csv") #importing the dataset from the disk
+    df.read_csv() #reading the dataset
+    df.drop(0) # drop the ID row
+    df.format_continuous() # format continuous data (only works for iris and weather)
 
-df.read_csv() #reading the dataset
-df.drop(0) # drop the ID row
-df.format_continuous() # format continuous data (only works for iris and weather)
+    tree = id3(df, df.targetCol)
 
-tree = id3(df, df.targetCol)
-
-print_dictionary(tree)
+    print_dictionary(tree)
 
 
-# ------------------ testing ------------------
+    # ------------------ testing ------------------
 
-print("\nWant to test prediction? (y/n)")
-if input() == "n":
-    exit()
+    print("\nWant to test prediction? (y/n)")
+    if input() == "n":
+        return
+        
 
-print("How many rows to test? ", end="")
-n = int(input())
-for i in range(n):
-    print("\nEnter row " + str(i + 1) + ": ", end="\n")
-    a = format_input(input(), df)
-    print("PREDICTION: " + predict_target(tree, a), end="\n")
+    print("How many rows to test? ", end="")
+    n = int(input())
+    for i in range(n):
+        print("\nEnter row " + str(i + 1) + ": ", end="\n")
+        a = format_input(input(), df)
+        print("PREDICTION: " + predict_target(tree, a), end="\n")
+
+
+if __name__ == "__main__":
+    main()

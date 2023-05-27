@@ -219,7 +219,7 @@ def print_dictionary(dictionary, indent=''):
 
 # lero print
 
-def format_input(input: str, df: DataFrame) -> DataFrame:
+def format_input(input: str, df: DataFrame, f: list) -> DataFrame:
     '''
     ### Formats the input string
     This function is used to format the input string to a list of strings
@@ -234,8 +234,6 @@ def format_input(input: str, df: DataFrame) -> DataFrame:
     input = input.split(",")
     row = [i.strip() for i in input]
     list = []
-    f = copy.copy(df.atributos)
-    f.pop()
     list.append(f)
     list.append(row)
     df = DataFrame("datasets/" + sys.argv[1] + ".csv", matrix= list)
@@ -266,12 +264,13 @@ def predict_target(dictionary, feat: DataFrame) -> str:
     - feat : the feat of the row
     '''
 
+
     if isinstance(dictionary, str):
         return dictionary
 
     # get the first key of the dictionary
     key = list(dictionary.keys())
-    
+
     attribute = dictionary[key[0]][0]
 
     # get the index of the feature in the row
@@ -286,6 +285,31 @@ def predict_target(dictionary, feat: DataFrame) -> str:
             return predict_target(sub_dict, feat)
         
     return "No class found"
+
+
+def predict_file(filepath: str, tree: dict, df: DataFrame) -> None:
+    '''
+    ### Predicts the target class of a file
+    This function is used to predict the target class of a file
+    by traversing the tree
+
+    ---
+
+    Parameters
+
+    - filepath : the filepath of the file
+    '''
+    file = open(filepath, "r")
+    lines = file.readlines()
+    lines.pop(0)
+    file.close()
+
+    f = copy.copy(df.atributos)
+
+    for line in lines:
+        print("Input: " + line, end="")
+        df = format_input(line, df, f)
+        print("Predicted class: " + predict_target(tree, df) + "\n")
 
 
 # ------------------ main ------------------
@@ -306,14 +330,11 @@ def main():
     print("\nWant to test prediction? (y/n)")
     if input() == "n":
         return
-        
 
-    print("How many rows to test? ", end="")
-    n = int(input())
-    for i in range(n):
-        print("\nEnter row " + str(i + 1) + ": ", end="\n")
-        a = format_input(input(), df)
-        print("PREDICTION: " + predict_target(tree, a), end="\n")
+    print("Input filepath: ", end="")
+    filepath = input()
+    print("")
+    predict_file(filepath, tree, df)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,5 @@
 import numpy as np #for mathematical calculation
 import sys
-import math
 import copy
 
 from Dataframe import *
